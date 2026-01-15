@@ -8,11 +8,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Verificar si hay un usuario en localStorage al cargar
-  useEffect(() => {
-    const currentUser = authService.getCurrentUser();
-    setUser(currentUser);
-    setLoading(false);
-  }, []);
+useEffect(() => {
+  const checkAuthentication = async () => {
+    try {
+      const response = await authService.getProfile();
+      setUser(response.user);
+    } catch (error) {
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  checkAuthentication();
+}, []);
 
   // Función de login
   const login = async (email, password) => {
@@ -37,11 +46,10 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Función de logout
-  const logout = () => {
-    authService.logout();
-    setUser(null);
-  };
-
+const logout = async () => {
+  await authService.logout();
+  setUser(null);
+};
   // Verificar si está autenticado
   const isAuthenticated = () => {
     return !!user;

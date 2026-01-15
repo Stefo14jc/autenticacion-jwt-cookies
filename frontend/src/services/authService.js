@@ -6,6 +6,7 @@ export const authService = {
     const response = await fetch(`${API_URL}/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // ✅ Correcto
       body: JSON.stringify({ email, password, name })
     });
 
@@ -16,9 +17,9 @@ export const authService = {
 
     const data = await response.json();
     
-    // Guardar token en localStorage
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    // ❌ ELIMINAR estas líneas - ya NO usamos localStorage
+    // localStorage.setItem('token', data.token);
+    // localStorage.setItem('user', JSON.stringify(data.user));
 
     return data;
   },
@@ -28,6 +29,7 @@ export const authService = {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include', // ✅ Correcto
       body: JSON.stringify({ email, password })
     });
 
@@ -38,43 +40,53 @@ export const authService = {
 
     const data = await response.json();
     
-    // Guardar token en localStorage
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user));
+    // ❌ ELIMINAR estas líneas - ya NO usamos localStorage
+    // localStorage.setItem('token', data.token);
+    // localStorage.setItem('user', JSON.stringify(data.user));
 
     return data;
   },
 
   // Cerrar sesión
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  logout: async () => {  // ✅ CORREGIR: debe ser una función async
+    try {
+      await fetch(`${API_URL}/logout`, {
+        method: 'POST',
+        credentials: 'include' // ✅ Correcto
+      });
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+    }
+    
+    // ❌ ELIMINAR estas líneas - ya NO usamos localStorage
+    // localStorage.removeItem('token');
+    // localStorage.removeItem('user');
   },
 
-  // Obtener usuario actual
-  getCurrentUser: () => {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  },
+  // ❌ ELIMINAR estas funciones - ya NO las necesitamos
+  // getCurrentUser: () => {
+  //   const userStr = localStorage.getItem('user');
+  //   return userStr ? JSON.parse(userStr) : null;
+  // },
 
-  // Obtener token
-  getToken: () => {
-    return localStorage.getItem('token');
-  },
+  // getToken: () => {
+  //   return localStorage.getItem('token');
+  // },
 
-  // Verificar si está autenticado
-  isAuthenticated: () => {
-    return !!localStorage.getItem('token');
-  },
+  // isAuthenticated: () => {
+  //   return !!localStorage.getItem('token');
+  // },
 
   // Obtener perfil del servidor
   getProfile: async () => {
-    const token = authService.getToken();
+    // ❌ ELIMINAR: const token = authService.getToken();
     
     const response = await fetch(`${API_URL}/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      credentials: 'include' // ✅ AGREGAR: para enviar cookies
+      // ❌ ELIMINAR el header Authorization
+      // headers: {
+      //   'Authorization': `Bearer ${token}`
+      // }
     });
 
     if (!response.ok) {
@@ -84,28 +96,18 @@ export const authService = {
     return response.json();
   },
 
-  // Hacer petición autenticada
-  fetchWithAuth: async (url, options = {}) => {
-    const token = authService.getToken();
-    
-    const config = {
-      ...options,
-      headers: {
-        ...options.headers,
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    };
-
-    const response = await fetch(url, config);
-    
-    if (response.status === 401) {
-      // Token expirado o inválido
-      authService.logout();
-      window.location.href = '/login';
-      throw new Error('Sesión expirada');
+  // Verificar autenticación llamando al servidor
+  checkAuth: async () => {
+    try {
+      const response = await fetch(`${API_URL}/me`, {
+        credentials: 'include'
+      });
+      return response.ok;
+    } catch {
+      return false;
     }
-
-    return response;
   }
+
+  // ❌ ELIMINAR la función fetchWithAuth - ya no la necesitamos
+  // porque las cookies se envían automáticamente
 };

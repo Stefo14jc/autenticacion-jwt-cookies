@@ -21,7 +21,20 @@ let nextId = 2;
 router.post('/register', async (req, res) => {
   try {
     const { email, password, name } = req.body;
+// Después de generar el token, ANTES de res.status(201).json():
+res.cookie('token', token, {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'strict',
+  maxAge: 24 * 60 * 60 * 1000 // 24 horas
+});
 
+// Y en el res.json, ELIMINAR la línea 'token: token'
+res.status(201).json({
+  message: 'Usuario registrado exitosamente',
+  user: userWithoutPassword
+  // NO enviar token aquí
+});
     // Validación
     if (!email || !password || !name) {
       return res.status(400).json({ 
@@ -98,7 +111,16 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  });
+  
+  console.log('✅ Sesión cerrada');
+  res.json({ message: 'Sesión cerrada exitosamente' });
+});
     // Validación
     if (!email || !password) {
       return res.status(400).json({ 
@@ -152,12 +174,13 @@ router.post('/login', async (req, res) => {
 // GET /api/auth/me - Obtener usuario actual
 router.get('/me', authenticateToken, (req, res) => {
   const user = users.find(u => u.id === req.user.userId);
+  
   if (!user) {
     return res.status(404).json({ error: 'Usuario no encontrado' });
   }
 
   const { password: _, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
+  res.json({ user: userWithoutPassword });
 });
 
 // GET /api/auth/users - Listar usuarios (solo para testing)
